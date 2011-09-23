@@ -1,0 +1,22 @@
+JAVALOC?=/afs/eos.ncsu.edu/lockers/workspace/ece/ece466/001/common/cetus
+
+ANTLR=$(JAVALOC)/install/lib/antlr.jar
+JAVA=$(JAVALOC)/jdk1.6.0_27/bin/java
+JAVAC=$(JAVALOC)/jdk1.6.0_27/bin/javac
+JAR=$(JAVALOC)/jdk1.6.0_27/bin/jar
+JAVADOC=$(JAVALOC)/jdk1.6.0_27/bin/javadoc
+
+JFLAGS = -cp $(CLASSPATH):$(JAVALOC)/cetus-1.3/lib/cetus.jar:$(JAVALOC)/jdk1.6.0_27/lib:$(JAVALOC)/install/lib/antlr.jar:.
+
+SOURCES = proj1.java LLVMCodeGenPass.java
+
+all: $(SOURCES:.java=.class)
+
+%.class : %.java
+	$(JAVAC) $(JFLAGS) $<
+
+test: all
+	$(JAVA) $(JFLAGS) proj1 -verbosity=1 main.c
+
+clean:
+	rm -Rf *.class cetus_output *.ll *~
