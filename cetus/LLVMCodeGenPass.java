@@ -20,8 +20,54 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
                 
     public void start()
     {
-	PrintWriter w = new PrintWriter(System.out);
+    String initVal;
+	PrintWriter dump = new PrintWriter(System.out);     //debug dump output
+	PrintWriter code = new PrintWriter(System.out);     //code output
+	/*try
+	{
+	    PrintWriter myWriter = new PrintWriter(new FileWriter("out"));
+	}
+	catch(IOException)
+	{
+	}*/
+	
 	// Transform the program here
+    DepthFirstIterator iter = new DepthFirstIterator(program);
+
+    while(iter.hasNext())
+    {
+        Object o = iter.next();             //get object
+        if(o instanceof Declaration)        //check if Declaration object
+        {
+            if(o instanceof VariableDeclaration)    //global variable declarations
+            {
+                dump.println("Var Dec found");
+                VariableDeclaration varDec = (VariableDeclaration) o;
+
+                //work on all declarations in statement if more than one declared on a line
+                for(int i = 0; i < varDec.getNumDeclarators(); i++)
+                {
+                    Declarator dec = varDec.getDeclarator(i);
+                    IDExpression id = dec.getID();
+                    dump.println("Var ID: " + id.getName());
+
+                    //check for possbile initializer
+                    Initializer init = dec.getInitializer();
+                    if(init == null)
+                        initVal = "0";
+                    else 
+                        initVal = init.toString();
+                    
+
+                    //print global var declaration code
+                    code.println("@"+id.getName()+" common global i32 " + initVal);
+                }
+            }
+        }
+    }
+
+
+	
 	if(verbosity>0)
 	{
 	    DepthFirstIterator dfs_iter = new DepthFirstIterator(program);
@@ -30,11 +76,17 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		Object o = dfs_iter.next();
 		if (o instanceof Declaration) {
 		    Declaration D = (Declaration) o;
-		    D.print(w);
+		    //D.print(w);
 		} 
 	    }
 	    // dump whatever you want
 	}
-	w.flush();
+	//w.flush();
+
+    //print all dump and code to screen at end
+	System.out.println("Dump Ouput:");
+	dump.flush();
+	System.out.println("\n\nCode Output:\n");
+	code.flush();
     }       
 }
