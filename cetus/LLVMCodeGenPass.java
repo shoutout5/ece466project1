@@ -20,6 +20,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
                 
     public void start()
     {
+
     String initVal;
 	PrintWriter dump = new PrintWriter(System.out);     //debug dump output
 	PrintWriter code = new PrintWriter(System.out);     //code output
@@ -71,8 +72,30 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
         }
     }
 
-
+	DepthFirstIterator dfs_iter1 = new DepthFirstIterator(program);
+    while (dfs_iter1.hasNext()) {
 	
+	Object line = dfs_iter1.next();
+	if (line instanceof Declaration) {
+	    Declaration dec = (Declaration) line;
+	    if(dec instanceof Procedure){
+	    	Procedure proc = (Procedure) dec;	
+	    	IDExpression id = proc.getName();
+	    	List ll = proc.getReturnType();
+	    	dump.println("Return type is "+ll.get(0));
+	    /*	for(int i=0; i<ll.size(); i++)
+	    	{
+	    		 System.out.println(ll.get(i)+" num="+i);
+	    		
+	    	}
+	    	*/
+	    	dump.println("The name of this function is "+id.getName());
+	    	CompoundStatement cs = proc.getBody();
+	    	dump.println("There are "+cs.countStatements()+" statements in this function.");
+	    }
+	 }
+    }
+
 	if(verbosity>0)
 	{
 	    DepthFirstIterator dfs_iter = new DepthFirstIterator(program);
