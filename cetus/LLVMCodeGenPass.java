@@ -21,7 +21,24 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
     public void start()
     {
 	PrintWriter w = new PrintWriter(System.out);
-	// Transform the program here
+
+	DepthFirstIterator dfs_iter1 = new DepthFirstIterator(program);
+    while (dfs_iter1.hasNext()) {
+	
+	Object line = dfs_iter1.next();
+	if (line instanceof Declaration) {
+	    Declaration dec = (Declaration) line;
+	    if(dec instanceof Procedure){
+	    	Procedure proc = (Procedure) dec;	
+	    	IDExpression id = proc.getName();
+	    	System.out.println(id.getName());
+	    	for(int i = 0; i<proc.getNumParameters(); i++){
+	    		System.out.println(" "+proc.getParameter(i)+" ");
+	    	}
+	    }
+	 }
+    }
+
 	if(verbosity>0)
 	{
 	    DepthFirstIterator dfs_iter = new DepthFirstIterator(program);
@@ -30,6 +47,9 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		Object o = dfs_iter.next();
 		if (o instanceof Declaration) {
 		    Declaration D = (Declaration) o;
+		    if(D instanceof Procedure){
+		    	
+		    }
 		    D.print(w);
 		} 
 	    }
