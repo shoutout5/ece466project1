@@ -16,7 +16,7 @@ all: $(SOURCES:.java=.class)
 	javac $(JFLAGS) $<
 
 test: all
-	java $(JFLAGS) proj1 -verbosity=1 main.c
+	java $(JFLAGS) proj1 -verbosity=4 main.c
 
 clean:
 	rm -Rf *.class cetus_output *.ll *~

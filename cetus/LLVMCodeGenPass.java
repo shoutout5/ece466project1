@@ -31,10 +31,17 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	    if(dec instanceof Procedure){
 	    	Procedure proc = (Procedure) dec;	
 	    	IDExpression id = proc.getName();
-	    	System.out.println(id.getName());
-	    	for(int i = 0; i<proc.getNumParameters(); i++){
-	    		System.out.println(" "+proc.getParameter(i)+" ");
+	    	List ll = proc.getReturnType();
+	    	
+	    	for(int i=0; i<ll.size(); i++)
+	    	{
+	    		 System.out.println(ll.get(i));
+	    		
 	    	}
+	    	
+	    	System.out.println("The name of this function is "+id.getName());
+	    	CompoundStatement cs = proc.getBody();
+	    	System.out.println("There are "+cs.countStatements()+" statements in this function.");
 	    }
 	 }
     }
