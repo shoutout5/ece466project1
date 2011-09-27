@@ -53,10 +53,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 
                     //check for possbile initializer
                     Initializer init = dec.getInitializer();
+                    
                     if(init == null)
                         initVal = "0";
-                    else 
+                    else
+                    {
+                        dump.println("Value Init");
                         initVal = init.toString();
+                        initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
+                    }
                     
 
                     //print global var declaration code
