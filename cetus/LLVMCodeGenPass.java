@@ -36,7 +36,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	    /*	for(int i=0; i<ll.size(); i++)
 	    	{
 	    		 System.out.println(ll.get(i)+" num="+i);
-	    		
+	    		hahahha
 	    	}
 	    	*/
 	    	System.out.println("The name of this function is "+id.getName());
