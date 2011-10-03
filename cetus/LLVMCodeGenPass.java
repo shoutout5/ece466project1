@@ -141,6 +141,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		dump.println("The name of this function is "+proc.getName());
 		dump.println("There are "+proc.getBody().countStatements()+" statements in this function.");
 
-		code.println("define " +returnType + " @" + proc.getName() + "(" + argBuff + ")");
+		code.println("define " +returnType + " @" + proc.getName() + "(" + argBuff + ") " + "{");
+		code.println("}\n");
 	}  
 }
