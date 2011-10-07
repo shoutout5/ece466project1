@@ -23,8 +23,6 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
                 
     public void start()
     {
-
-    
 	
 	/*try
 	{
@@ -35,9 +33,11 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	}*/
 
 	// Transform the program here
+    	
     DepthFirstIterator iter = new DepthFirstIterator(program);
-
-    //look for global variable declarations
+   
+    //Examining the file and breaking it down into parts
+    
     while(iter.hasNext())
     {
         Object o = iter.next();             //get object
@@ -47,20 +47,34 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
             dump.println("Var Dec found");
             globalVariable((VariableDeclaration) o);
         }
+        else if(o instanceof Procedure){
+            procedure((Procedure) o);
+        	
+        }
+        else if (o instanceof Expression){
+        	Expression ex  = (Expression) o;
+        	if(ex instanceof AssignmentExpression)
+        		assignment((AssignmentExpression) ex);
+        }
+        else if(o instanceof Statement){
+        	Statement currentStatement = (Statement) o;
+        	
+        	if(currentStatement instanceof IfStatement)
+        		ifStatement((IfStatement) currentStatement);
+        	
+        	else if(currentStatement instanceof ForLoop)
+        		forLoop((ForLoop) currentStatement); 
+        	else if(currentStatement instanceof WhileLoop)
+        		whileLoop((WhileLoop) currentStatement);
+        	else if(currentStatement instanceof DoLoop)
+        		doLoop((DoLoop) currentStatement);
+        }
+ 
+        else {
+        	
+        }
     }
-    
-	iter = new DepthFirstIterator(program);     //reset iterator
 
-    //look for procedure declarations
-    while (iter.hasNext()) {
-
-	Object line = iter.next();
-
-    if(line instanceof Procedure){
-        procedure((Procedure) line);
-    	
-    }
-    }
 
 	if(verbosity>0)
 	{
@@ -81,7 +95,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	System.out.println("Dump Ouput:");
 	dump.flush();
 	System.out.println("\n\nCode Output:\n");
-	code.flush();
+	//code.flush();
     } 
 
     private void globalVariable(VariableDeclaration varDec)
@@ -96,34 +110,68 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
             dump.println("Var ID: " + id.getName());
 
             //check for possbile initializer
+            try {
             Initializer init = dec.getInitializer();
-                   
+            dump.println("Value Init");
             if(init == null)
                 initVal = "0";
             else
-            {
+              {
                 dump.println("Value Init");
                 initVal = init.toString();
                 initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
-            }
-                    
-
+              } 
             //print global var declaration code
             code.println("@"+id.getName()+" common global i32 " + initVal);
+            }  
+            
+            catch(ClassCastException e) {
+            	System.out.println("Exception finding Global Variables");
+            }        
+            
         }
     }    
-
+    private void ifStatement(IfStatement myIf){
+    	dump.println("Found if statement");
+		Expression terms = myIf.getControlExpression();
+		//Todo - add code output here!
+		dump.println("If conditions: "+terms.toString()+"\n");
+		
+		Statement elseStmt = myIf.getThenStatement();
+		//Todo - add output to code here
+		dump.println("Then statement: "+elseStmt.toString()+"\n");
+    }
+    private void forLoop(ForLoop fl){
+    	dump.println("For loop found");  
+    	Expression 	condi = fl.getCondition();
+    	Statement iStmnt = fl.getInitialStatement();
+    	Expression step = fl.getStep();
+    	dump.println("For loop conditions: "+condi+"\n");
+    	dump.println("For loop initial statement: "+iStmnt.toString());
+    	dump.println("For loop step: "+step+"\n");
+    }
+    private void whileLoop(WhileLoop wl){
+    	dump.println("While loop found");
+    	Expression lc = wl.getCondition();
+    	dump.println("While loop conditions:"+lc);
+    	
+    }
+    private void doLoop(DoLoop dl){
+    	dump.println("Do loop found");
+    	Expression lc = dl.getCondition();
+    	dump.println("Do loop conditions:"+lc);
+    }
+    private void assignment(AssignmentExpression ex){
+    	AssignmentOperator op = ex.getOperator();
+    	dump.println("Assignment op: "+op.toString());
+    }
     private void procedure(Procedure proc)
     {
     	IDExpression id = proc.getName();
     	List ll = proc.getReturnType();
     	dump.println("Return type is "+ll.get(0));
-        /*	for(int i=0; i<ll.size(); i++)
-    	{
-    		 System.out.println(ll.get(i)+" num="+i);
-    		
-    	}
-    	*/
+    	//List l2 = proc.getParameters();
+    	//dump.println("Parameters"+l2.get(0));
     	dump.println("The name of this function is "+id.getName());
     	CompoundStatement cs = proc.getBody();
     	dump.println("There are "+cs.countStatements()+" statements in this function.");
