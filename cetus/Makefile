@@ -18,5 +18,8 @@ all: $(SOURCES:.java=.class)
 test: all
 	java $(JFLAGS) proj1 -verbosity=4 main.c
 
+andrew: all
+	  java $(JFLAGS) proj1 -verbosity=4 problem3.c 
+
 clean:
 	rm -Rf *.class cetus_output *.ll *~

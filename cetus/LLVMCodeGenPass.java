@@ -9,6 +9,7 @@ import cetus.analysis.*;
 public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 {
     int errors;
+    boolean inFunction;
     PrintWriter dump = new PrintWriter(System.out);     //debug dump output
 	PrintWriter code = new PrintWriter(System.out);     //code output
 	
@@ -37,18 +38,18 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
     DepthFirstIterator iter = new DepthFirstIterator(program);
    
     //Examining the file and breaking it down into parts
-    
+     inFunction = false;
     while(iter.hasNext())
     {
         Object o = iter.next();             //get object
-        
+       
         if(o instanceof VariableDeclaration)    //global variable declarations
         {
             dump.println("Var Dec found");
-            globalVariable((VariableDeclaration) o);
+            declareVariable((VariableDeclaration) o);
         }
         else if(o instanceof Procedure){
-            procedure((Procedure) o);
+           inFunction = procedure((Procedure) o);
         	
         }
         else if (o instanceof Expression){
@@ -68,6 +69,8 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
         		whileLoop((WhileLoop) currentStatement);
         	else if(currentStatement instanceof DoLoop)
         		doLoop((DoLoop) currentStatement);
+        	else if(currentStatement instanceof ReturnStatement)
+        		inFunction = foundReturn((ReturnStatement) currentStatement);
         }
  
         else {
@@ -95,10 +98,10 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	System.out.println("Dump Ouput:");
 	dump.flush();
 	System.out.println("\n\nCode Output:\n");
-	//code.flush();
+	code.flush();
     } 
 
-    private void globalVariable(VariableDeclaration varDec)
+    private void declareVariable(VariableDeclaration varDec)
     {
         String initVal;
 
@@ -121,8 +124,12 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
                 initVal = init.toString();
                 initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
               } 
-            //print global var declaration code
-            code.println("@"+id.getName()+" common global i32 " + initVal);
+            //local vs global variable declarations
+             if(inFunction)
+            	 code.println("%"+id.getName()+"= i32 "+ initVal);
+             else{
+            	 code.println("@"+id.getName()+" common global i32 " + initVal);
+             }
             }  
             
             catch(ClassCastException e) {
@@ -165,7 +172,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
     	AssignmentOperator op = ex.getOperator();
     	dump.println("Assignment op: "+op.toString());
     }
-    private void procedure(Procedure proc)
+    private boolean procedure(Procedure proc)
     {
     	IDExpression id = proc.getName();
     	List ll = proc.getReturnType();
@@ -175,5 +182,11 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
     	dump.println("The name of this function is "+id.getName());
     	CompoundStatement cs = proc.getBody();
     	dump.println("There are "+cs.countStatements()+" statements in this function.");
+    	return true;
     }  
+    private boolean foundReturn(ReturnStatement rs){
+    	Expression ex = rs.getExpression();
+    	dump.println("Return value: "+ex);
+    	return false;
+    }
 }

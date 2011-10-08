@@ -7,6 +7,7 @@ int foo1() {
 int j;
 
 int foo2() {
+int test;
   return 5;
 }
 
