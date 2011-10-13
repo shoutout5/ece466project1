@@ -18,7 +18,7 @@ public class proj1 extends cetus.exec.Driver
     {
 	System.out.println("Running Proj1 driver.");
 	
-	(new LLVMCodeGenPass(program)).start();
+	(new LLVMCodeGenPass(program, outputFilename)).start();
     }
 
     public static void main(String[] args)
