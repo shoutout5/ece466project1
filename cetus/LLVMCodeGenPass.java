@@ -289,6 +289,17 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		Statement elseStmt = myIf.getThenStatement();
 		dump.println("then statement: "+elseStmt.toString()+"\n");
 
+		boolean LHSIsArray = false;
+		boolean LHSIs2dArray = false;
+		boolean RHSIsArray = false;
+		boolean RHSIs2dArray = false;
+		String LHSArrayLocation = null;
+		String LHSArrayLocation2 = null;
+		String RHSArrayLocation = null;
+		String RHSArrayLocation2 = null;
+		String nameLHS = null;
+		String nameRHS = null;
+		
 		//generate code
 		if(terms instanceof BinaryExpression)
 		{
@@ -307,6 +318,29 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)LHS).getName());
 				LHSreg = ssaReg-1;
 			}
+			else if(LHS instanceof ArrayAccess){
+				String name=null;
+				LHSIsArray = true;
+				ArrayAccess aL = (ArrayAccess) LHS;
+				nameLHS = aL.getArrayName().toString();
+				LHSArrayLocation=aL.getIndices().get(0).toString();
+				if(aL.getNumIndices() > 1) {
+					LHSIs2dArray = true;
+					LHSArrayLocation2=aL.getIndices().get(1).toString();
+				}
+				if(!LHSIs2dArray){
+					 String nameOfArray = nameLHS;
+					nameLHS = new String(nameLHS+"_"+LHSArrayLocation);
+					code.println("%"+nameLHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+LHSArrayLocation);
+					code.println("%"+nameLHS+" = load i32* "+nameLHS);
+				}
+				else if (LHSIs2dArray){
+					String nameOfArray = nameLHS;
+					nameLHS = new String(nameOfArray+"_"+LHSArrayLocation+"_"+LHSArrayLocation2);
+					code.println("%"+nameLHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+LHSArrayLocation+", i32 "+LHSArrayLocation2);
+					code.println("%"+nameLHS+" = load i32* "+nameLHS);
+				}
+			}
 			//gen RHS register if needed
 			if(RHS instanceof BinaryExpression)
 				RHSreg = genExpressionCode((BinaryExpression) RHS);
@@ -314,6 +348,29 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			{
 				code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)RHS).getName());
 				RHSreg = ssaReg-1;
+			}
+			else if(RHS instanceof ArrayAccess){
+				String name=null;
+				RHSIsArray = true;
+				ArrayAccess aL = (ArrayAccess) RHS;
+				nameRHS = aL.getArrayName().toString();
+				RHSArrayLocation=aL.getIndices().get(0).toString();
+				if(aL.getNumIndices() > 1) {
+					RHSIs2dArray = true;
+					RHSArrayLocation2=aL.getIndices().get(1).toString();
+				}
+				if(!RHSIs2dArray){
+					 String nameOfArray = nameRHS;
+					nameLHS = new String(nameRHS+"_"+RHSArrayLocation);
+					code.println("%"+nameRHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+RHSArrayLocation);
+					code.println("%"+nameRHS+" = load i32* "+nameRHS);
+				}
+				else if (RHSIs2dArray){
+					String nameOfArray = nameRHS;
+					nameRHS = new String(nameOfArray+"_"+RHSArrayLocation+"_"+RHSArrayLocation2);
+					code.println("%"+nameRHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+RHSArrayLocation+", i32 "+RHSArrayLocation2);
+					code.println("%"+nameRHS+" = load i32* "+nameRHS);
+				}
 			}
 
 
@@ -330,11 +387,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			code.print("i32 ");    //+exp.getLHS()+", "+exp.getRHS());
 			if(LHS instanceof IntegerLiteral)
 				code.print(((IntegerLiteral) LHS).getValue() + ", ");
+			else if(LHSIsArray)
+				code.print("%"+nameLHS+", ");
 			else
 				code.print("%" + LHSreg + ", ");
 
 			if(RHS instanceof IntegerLiteral)
 				code.println(((IntegerLiteral) RHS).getValue());
+			else if(RHSIsArray)
+				code.print("%"+nameRHS+", ");
 			else
 				code.println("%" + RHSreg);
 
@@ -374,7 +435,16 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		dump.println("While loop found");
 		Expression lc = wl.getCondition();
 		dump.println("While loop conditions:"+lc);
-
+		boolean LHSIsArray = false;
+		boolean LHSIs2dArray = false;
+		boolean RHSIsArray = false;
+		boolean RHSIs2dArray = false;
+		String LHSArrayLocation = null;
+		String LHSArrayLocation2 = null;
+		String RHSArrayLocation = null;
+		String RHSArrayLocation2 = null;
+		String nameLHS = null;
+		String nameRHS = null;
 		if(lc instanceof BinaryExpression)
 		{
 			BinaryExpression exp = (BinaryExpression) lc;
@@ -396,6 +466,29 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)LHS).getName());
 				LHSreg = ssaReg-1;
 			}
+			else if(LHS instanceof ArrayAccess){
+				String name=null;
+				LHSIsArray = true;
+				ArrayAccess aL = (ArrayAccess) LHS;
+				nameLHS = aL.getArrayName().toString();
+				LHSArrayLocation=aL.getIndices().get(0).toString();
+				if(aL.getNumIndices() > 1) {
+					LHSIs2dArray = true;
+					LHSArrayLocation2=aL.getIndices().get(1).toString();
+				}
+				if(!LHSIs2dArray){
+					 String nameOfArray = nameLHS;
+					nameLHS = new String(nameLHS+"_"+LHSArrayLocation);
+					code.println("%"+nameLHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+LHSArrayLocation);
+					code.println("%"+nameLHS+" = load i32* "+nameLHS);
+				}
+				else if (LHSIs2dArray){
+					String nameOfArray = nameLHS;
+					nameLHS = new String(nameOfArray+"_"+LHSArrayLocation+"_"+LHSArrayLocation2);
+					code.println("%"+nameLHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+LHSArrayLocation+", i32 "+LHSArrayLocation2);
+					code.println("%"+nameLHS+" = load i32* "+nameLHS);
+				}
+			}
 			//gen RHS register if needed
 			if(RHS instanceof BinaryExpression)
 				RHSreg = genExpressionCode((BinaryExpression) RHS);
@@ -403,6 +496,29 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			{
 				code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)RHS).getName());
 				RHSreg = ssaReg-1;
+			}
+			else if(RHS instanceof ArrayAccess){
+				String name=null;
+				RHSIsArray = true;
+				ArrayAccess aL = (ArrayAccess) RHS;
+				nameRHS = aL.getArrayName().toString();
+				RHSArrayLocation=aL.getIndices().get(0).toString();
+				if(aL.getNumIndices() > 1) {
+					RHSIs2dArray = true;
+					RHSArrayLocation2=aL.getIndices().get(1).toString();
+				}
+				if(!RHSIs2dArray){
+					 String nameOfArray = nameRHS;
+					nameLHS = new String(nameRHS+"_"+RHSArrayLocation);
+					code.println("%"+nameRHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+RHSArrayLocation);
+					code.println("%"+nameRHS+" = load i32* "+nameRHS);
+				}
+				else if (RHSIs2dArray){
+					String nameOfArray = nameRHS;
+					nameRHS = new String(nameOfArray+"_"+RHSArrayLocation+"_"+RHSArrayLocation2);
+					code.println("%"+nameRHS+" = getelementptr inbounds %"+nameOfArray+", i32 "+RHSArrayLocation+", i32 "+RHSArrayLocation2);
+					code.println("%"+nameRHS+" = load i32* "+nameRHS);
+				}
 			}
 
 			//generate comparison statement
@@ -420,11 +536,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 
 			if(LHS instanceof IntegerLiteral)
 				code.print(((IntegerLiteral) LHS).getValue() + ", ");
+			else if(LHSIsArray)
+				code.print("%"+nameLHS+", ");
 			else
 				code.print("%" + LHSreg + ", ");
 
 			if(RHS instanceof IntegerLiteral)
 				code.println(((IntegerLiteral) RHS).getValue());
+			else if(RHS instanceof ArrayAccess)
+				code.print("%"+nameRHS+", ");
 			else
 				code.println("%" + RHSreg);
 
