@@ -102,7 +102,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		//work on all declarations in statement if more than one declared on a line
 		for(int i = 0; i < varDec.getNumDeclarators(); i++)
 		{
-			Declarator dec = varDec.getDeclarator(i);
+			VariableDeclarator dec = (VariableDeclarator) varDec.getDeclarator(i);
 			IDExpression id = dec.getID();
 			dump.println("Var ID: " + id.getName());
 			String arraySize = dec.getArraySpecifiers().toString().trim();
@@ -133,26 +133,61 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			try {
 				Initializer init = dec.getInitializer();
 				dump.println("Value Init");
-				if(init == null)
-					initVal = "0";
-				else
-				{
-					dump.println("Value Init");
-					initVal = init.toString();
-					initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
-				} 
+				
 				//local vs global variable declarations
 				/*if(inFunction)
             	 code.println("%"+id.getName()+"= i32 "+ initVal);
              else{
             	 code.println("@"+id.getName()+" common global i32 " + initVal);
              }*/
-				
-				 if(isArray)
-					 code.println("%" + id.getName() + " = alloca "+arraySpec);
-				 else
-					 code.println("%" + id.getName() + " = alloca i32");
-				code.println("store i32 " + initVal + ", i32* %" + id.getName());
+				if(isArray)
+					code.println("%" + id.getName() + " = alloca "+arraySpec);
+				else
+				{
+					code.print("%" + id.getName() + " = alloca");
+					
+					if (dec.getTypeSpecifiers().get(0).toString().equals("int"))
+						code.print(" i32");
+					
+					if (dec.getTypeSpecifiers().size() == 1)
+						code.println("");
+					else 
+					{
+						for (int j = 1; j < dec.getTypeSpecifiers().size(); j++)
+							code.println(dec.getTypeSpecifiers().get(j).toString().trim());
+					}
+				}
+				if (dec.getTypeSpecifiers().size() == 1)
+				{
+					if(init == null)
+						initVal = "0";
+					else
+					{
+						initVal = init.toString();
+						initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
+					} 
+					code.println("store i32 " + initVal + ", i32* %" + id.getName());
+				}
+				else 
+				{
+					if (init != null)
+					{
+						code.print("store i32");
+						for (int j = 1; j < dec.getTypeSpecifiers().size(); j++)
+							code.print(dec.getTypeSpecifiers().get(j).toString().trim());
+
+						initVal = init.toString();
+						initVal = " %" + initVal.substring(initVal.indexOf("&")+2,initVal.length() - 1);
+
+						code.print(initVal + ", i32");
+						for (int j = 1; j < dec.getTypeSpecifiers().size(); j++)
+							code.print(dec.getTypeSpecifiers().get(j).toString().trim());
+
+						code.print("* " + "%" + id.getName());
+					}
+					else
+						code.println("");
+				}
 			}  
 
 			catch(ClassCastException e) {
@@ -173,9 +208,11 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			boolean isArray;
 			boolean is2dArray;
 			String arraySpec=null;
-			Declarator dec = varDec.getDeclarator(i);
+			VariableDeclarator dec = (VariableDeclarator) varDec.getDeclarator(i);
 			IDExpression id = dec.getID();
 			dump.println("Var ID: " + id.getName());
+			dump.println("Specifiers = " + dec.getSpecifiers());
+			dump.println("Type Specifiers = " + dec.getTypeSpecifiers());
 			//dump.println("Parent: " + varDec.getParent() + "\n");
 			String arraySize = dec.getArraySpecifiers().toString().trim();
 
@@ -201,22 +238,47 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			//check for possible initializer
 			Initializer init = dec.getInitializer();
 
-			if (init != null)
+			if (dec.getSpecifiers().equals("[]"))
+				dump.println("int type!");
+			
+			code.print("@"+id.getName());
+
+			if (init == null)
+				code.print(" common");
+
+			code.print(" global");
+
+			if (dec.getTypeSpecifiers().get(0).toString().equals("int"))
+				code.print(" i32");
+			
+			if (dec.getTypeSpecifiers().size() == 1)
+				code.print(" ");
+			else 
 			{
-				dump.println("Value Init");
+				for (int j = 1; j < dec.getTypeSpecifiers().size(); j++)
+					code.print(dec.getTypeSpecifiers().get(j).toString().trim());
+				code.print(" ");
+			}
+			if (init == null)
+			{
+				if (dec.getTypeSpecifiers().size() == 1)
+					code.println("");
+				else 
+					if (dec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
+						code.println("null");
+			}
+			else
+			{
 				initVal = init.toString();
-				initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
-			}
-			else {
-				initVal = new String("0");
-			}
-				//print global var declaration code
-						
-		
-		if(isArray)
-			 code.println("@" + id.getName() + " global i32 "+arraySpec);
-		else
-		 code.println("@"+id.getName()+" global i32 " + initVal);
+				if (dec.getTypeSpecifiers().size() == 1)
+					initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
+				else
+				{
+					if (dec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
+						initVal = "@" + initVal.substring(initVal.indexOf("&")+2,initVal.length() - 1);						
+				}
+				code.println(initVal);
+			}	
 		}
 	}    
 
