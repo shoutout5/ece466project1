@@ -13,6 +13,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 	int ssaReg = 0;
 	int ifLabel = 0;
 	int loopLabel = 0;
+	HashMap ListOfArrays=new HashMap();
 	PrintWriter dump = new PrintWriter(System.out);     //debug dump output
 	PrintWriter code; //= new PrintWriter(System.out);     //code output
 	PrintWriter debug = new PrintWriter(System.out);
@@ -153,8 +154,10 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
              else{
             	 code.println("@"+id.getName()+" common global i32 " + initVal);
              }*/
-				if(isArray)
+				if(isArray){
+					ListOfArrays.put(id.getName(), arraySpec);
 					code.println("%" + id.getName() + " = alloca "+arraySpec);
+				}
 				else
 				{
 					code.print("%" + id.getName() + " = alloca");
@@ -944,6 +947,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		else {
 			nameLHS = LHS.toString();
 		}
+		nameRHS = RHS.toString();
 		if(RHS instanceof BinaryExpression)
 		{
 			returnReg = genExpressionCode((BinaryExpression) RHS);
@@ -951,8 +955,14 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		}
 		else if(RHS instanceof Identifier)
 		{
-			code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)RHS).getName());
-			code.println("store i32 %"+ (ssaReg-1) + ", i32* %"+nameLHS);
+			if(ListOfArrays.containsKey(nameRHS)){
+				dump.println("name:"+nameRHS+"key dump: "+ListOfArrays.get(nameRHS));
+				code.println("%" + ssaReg++ + " = getelementptr inbounds"+ListOfArrays.get(nameRHS)+"* %"+nameRHS+", i32 0, i32 0");
+			} 
+			else {
+				code.println("%" + ssaReg++ + " = load i32* %"+((Identifier)RHS).getName());
+				code.println("store i32 %"+ (ssaReg-1) + ", i32* %"+nameLHS);
+			}
 			returnReg = ssaReg - 1;
 		}
 		else if(RHS instanceof ArrayAccess){
@@ -980,6 +990,49 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		}
 		else if(RHS instanceof IntegerLiteral)
 		{
+			//debug.println(LHS);
+			String LHSsubstring;
+			int derefCount = 0;
+			
+			LHSsubstring = LHS.toString().substring(2,LHS.toString().length());
+			System.out.println(LHSsubstring);
+			
+			if (LHSsubstring.startsWith("*") || LHSsubstring.startsWith("("))
+			{
+				while (LHSsubstring.startsWith("*") || LHSsubstring.startsWith("("))
+				{
+					try{
+						//debug.println(LHSsubstring);
+						LHSsubstring = LHSsubstring.substring(LHSsubstring.indexOf("*") + 2,LHSsubstring.length());
+						derefCount++;
+					}
+					catch (Exception e)
+					{
+						break;
+					}
+				}
+				//debug.println(derefCount);
+				for (int i = derefCount; i > 0; i--)
+				{
+					code.print("%" + ssaReg++ + " = load i32");
+
+					for (int j = 0; j <= i; j++)
+						code.print("*");
+
+					code.print(" %");
+
+					if (i == derefCount)
+						code.println(nameLHS.substring(nameLHS.lastIndexOf("*") + 2,nameLHS.lastIndexOf("*") + 3));
+					else
+						code.println(ssaReg - 2);
+				}
+				
+				code.println("store i32 "+ ((IntegerLiteral)RHS).getValue() + ", i32* %" + (ssaReg - 1));
+			}
+			else
+			{
+				code.println("store i32 "+ ((IntegerLiteral)RHS).getValue() + ", i32* %"+nameLHS);
+			}
 			returnReg = ssaReg++;
 			code.println("%" + returnReg + " = " + ((IntegerLiteral)RHS).getValue());
 			code.println("store i32 "+ ((IntegerLiteral)RHS).getValue() + ", i32* %"+nameLHS);
@@ -988,7 +1041,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			returnReg = commaExpression((CommaExpression)RHS);
 			code.println("store i32 %"+ returnReg +", i32* %"+nameLHS);
 		}
-else if(RHS instanceof FunctionCall)
+		else if(RHS instanceof FunctionCall)
 		{
 			returnReg = functionCall((FunctionCall) RHS);
 			code.println("store i32 %"+returnReg+", i32* %"+nameLHS);
