@@ -986,7 +986,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				if(LHSArrayLocation.equals(LHSArrayLocation1))
 					code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32 "+LHSArrayLocation1);
 				else
-					code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32* "+LHSArrayLocation1);
+					code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32 "+LHSArrayLocation1);
 			}
 			else if (LHSIs2dArray){			// otherwise if left hand side is 2d array
 				String nameOfArray = nameLHS;
@@ -1050,7 +1050,17 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			}
 			else
 			{
-				code.println("store i32 %r" + returnReg + ", i32* %" + nameLHS);
+				code.print("store i32");
+				if (ListOfPointers.containsKey(nameLHS.toString()))
+					for (int i = 1; i < Integer.parseInt(ListOfPointers.get(nameLHS).toString()); i++) { 	// count number of references
+						code.print("*");
+					}	
+				code.print(" %r" + returnReg + ", i32*");
+				if (ListOfPointers.containsKey(nameLHS.toString()))
+					for (int i = 1; i < Integer.parseInt(ListOfPointers.get(nameLHS).toString()); i++) { 	// count number of references
+						code.print("*");
+					}
+				code.println(" %" + nameLHS);
 			}			
 		}
 		else if(RHS instanceof Identifier)
