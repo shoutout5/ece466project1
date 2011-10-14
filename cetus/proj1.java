@@ -16,59 +16,58 @@ public class proj1 extends cetus.exec.Driver
 
     public void runPasses()
     {
-	System.out.println("Running Proj1 driver.");
-	
-	(new LLVMCodeGenPass(program)).start();
+    	System.out.println("Running Proj1 driver.");
+    	(new LLVMCodeGenPass(program, outputFilename)).start();
     }
 
     public static void main(String[] args)
-    {	    
-	(new proj1()).run(args);
+    {
+(new proj1()).run(args);
     }
 
     public void run(String[] args)
     {
 
-	options.add(options.UTILITY, "output-file","out.ll","filename in which to write LLVM IR");
-	
-	int i; /* used after loop; don't put inside for loop */
-	for (i = 0; i < args.length; ++i)
-	{
-	    String opt = args[i];
-	    // options start with "-"
+options.add(options.UTILITY, "output-file","out.ll","filename in which to write LLVM IR");
 
-	    if (opt.charAt(0) != '-')
-		/* not an option -- skip to handling options and filenames */
-		break;
-	    
-	    int eq = opt.indexOf('=');
-	    
-	    // if value is not set
-	    if (eq != -1)
-	    {
-		String option_name = opt.substring(1, eq);	       
-		if (options.contains(option_name)) {
-		    outputFilename = opt.substring(eq+1);
-		}
-	    }
-	}
+int i; /* used after loop; don't put inside for loop */
+for (i = 0; i < args.length; ++i)
+{
+String opt = args[i];
+// options start with "-"
 
-	parseCommandLine(args);
-	
-	parseFiles();
-	
-	if (getOptionValue("parse-only") != null)
-	{
-	    System.err.println("parsing finished and parse-only option set");
-	    Tools.exit(0);
-	}
+if (opt.charAt(0) != '-')
+/* not an option -- skip to handling options and filenames */
+break;
 
-	runPasses();
+int eq = opt.indexOf('=');
+
+// if value is not set
+if (eq != -1)
+{
+String option_name = opt.substring(1, eq);
+if (options.contains(option_name)) {
+outputFilename = opt.substring(eq+1);
+}
+}
+}
+
+parseCommandLine(args);
+
+parseFiles();
+
+if (getOptionValue("parse-only") != null)
+{
+System.err.println("parsing finished and parse-only option set");
+Tools.exit(0);
+}
+
+runPasses();
     }
 
   /**
-   * Prints the list of options that Cetus accepts.
-   */
+* Prints the list of options that Cetus accepts.
+*/
   public void printUsage()
   {
       String usage = "\njava [-cp classpath] proj1 [option]... [file]...\n";

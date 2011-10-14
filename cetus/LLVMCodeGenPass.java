@@ -110,7 +110,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 
 	private void declareVariable(VariableDeclaration varDec)
 	{
-		String initVal;
+		String initVal = new String("0");
 		
 		//work on all declarations in statement if more than one declared on a line
 		for(int i = 0; i < varDec.getNumDeclarators(); i++)
@@ -173,16 +173,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				}
 				if (dec.getTypeSpecifiers().size() == 1)
 				{
-					if(init == null)
-						initVal = "0";
-					else
+					if(init != null)
 					{
 						initVal = init.toString();
 						initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
 					} 
-					code.println("store i32 " + initVal + ", i32* %" + id.getName());
+					if(!isArray)
+						code.println("store i32 " + initVal + ", i32* %" + id.getName());
 				}
-				else 
+				else // pointers
 				{
 					if (init != null)
 					{
@@ -209,7 +208,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			}        
 
 		}
-		code.println();
+		//code.println();
 	}  
 
 	private void globalVariable(VariableDeclaration varDec)
@@ -222,15 +221,16 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			boolean isArray;
 			boolean is2dArray;
 			String arraySpec=null;
-			VariableDeclarator dec = (VariableDeclarator) varDec.getDeclarator(i);
+			Declarator dec = varDec.getDeclarator(i);
 			IDExpression id = dec.getID();
 			dump.println("Var ID: " + id.getName());
 			//dump.println("Specifiers = " + dec.getSpecifiers());
 			//dump.println("Type Specifiers = " + dec.getTypeSpecifiers());
 			//dump.println("Parent: " + varDec.getParent() + "\n");
-			String arraySize = dec.getArraySpecifiers().toString().trim();
+			String arraySize;
 
 			try{
+				 arraySize = dec.getArraySpecifiers().toString().trim();
 				arraySize = arraySize.substring(2,arraySize.lastIndexOf("]")-1 ).trim();
 				isArray=true;
 				if(arraySize.contains("]["))
@@ -248,23 +248,32 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			catch(StringIndexOutOfBoundsException e){
 				isArray=false;
 			}
+			catch(NullPointerException e){
+				isArray=false;
+			}
 			
-			//check for possible initializer
-			Initializer init = dec.getInitializer();
-
+			//check for possible initializer;
+			Initializer init;
+			try{
+				init = dec.getInitializer();
+			}
+			catch(ClassCastException e){
+				init = null;
+			}
 			if (dec.getSpecifiers().equals("[]"))
 				dump.println("int type!");
-			
+
 			code.print("@"+id.getName());
 
 			if (init == null)
 				code.print(" common");
 
 			code.print(" global");
-
-			if (dec.getTypeSpecifiers().get(0).toString().equals("int"))
+			try{
+			VariableDeclarator vdec = (VariableDeclarator) dec;
+			if (vdec.getTypeSpecifiers().get(0).toString().equals("int"))
 			{
-				if (dec.getTypeSpecifiers().size() == 1)
+				if (vdec.getTypeSpecifiers().size() == 1)
 				{
 					if (isArray == true)
 						code.print(" i32 "+arraySpec);
@@ -338,35 +347,37 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				}
 			}
 
-			if (dec.getTypeSpecifiers().size() == 1)
+			if (vdec.getTypeSpecifiers().size() == 1)
 				code.print(" ");
 			else 
 			{
-				for (int j = 1; j < dec.getTypeSpecifiers().size(); j++)
-					code.print(dec.getTypeSpecifiers().get(j).toString().trim());
+				for (int j = 1; j < vdec.getTypeSpecifiers().size(); j++)
+					code.print(vdec.getTypeSpecifiers().get(j).toString().trim());
 				code.print(" ");
 			}
 			if (init == null)
 			{
-				if (dec.getTypeSpecifiers().size() == 1)
+				if (vdec.getTypeSpecifiers().size() == 1)
 					code.println("");
 				else 
-					if (dec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
+					if (vdec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
 						code.println("null");
 			}
 			else
 			{
 				initVal = init.toString();
-				if (dec.getTypeSpecifiers().size() == 1)
+				if (vdec.getTypeSpecifiers().size() == 1)
 					initVal = initVal.substring(initVal.indexOf("=")+2,initVal.length());
 				else
 				{
-					if (dec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
+					if (vdec.getTypeSpecifiers().get(1).toString().trim().equals("*"))
 						initVal = "@" + initVal.substring(initVal.indexOf("&")+2,initVal.length() - 1);						
 				}
 				code.println(initVal);
 			}	
 		}
+			catch(ClassCastException e){}
+	  }
 	}    
 
 	private void ifStatement(IfStatement myIf){
@@ -771,14 +782,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		//create code
 		if (!(proc.getParameters().isEmpty() || proc.getParameter(0).toString().equals("void ")))
 		{
-			if (proc.getParameter(0).toString().startsWith("int"))
-				argBuff.append("i32");
+			String parameter = proc.getParameter(0).toString();
+			if (parameter.startsWith("int"))
+				argBuff.append("i32 %" + parameter.substring(parameter.indexOf("t") +2));
+			
 			for (int i = 1; i < proc.getParameters().size(); i++ ) {
 				argBuff.append(", ");
-				if (proc.getParameter(i).toString().startsWith("int"))
-					argBuff.append("i32");
-				argBuff.append("i32");
-				//{arguments, ", ", proc.getParameter(i).toString()};
+				parameter = proc.getParameter(i).toString();
+				if (parameter.startsWith("int"))
+					argBuff.append("i32 %" + parameter.substring(parameter.indexOf("t") +2));
 			}
 			//System.out.println("Arguments: " + argBuff);
 		}
@@ -976,10 +988,94 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			returnReg = commaExpression((CommaExpression)RHS);
 			code.println("store i32 %"+ returnReg +", i32* %"+nameLHS);
 		}
-		else if(RHS instanceof FunctionCall)
+else if(RHS instanceof FunctionCall)
 		{
 			returnReg = functionCall((FunctionCall) RHS);
 			code.println("store i32 %"+returnReg+", i32* %"+nameLHS);
+		}
+		else if(RHS instanceof UnaryExpression){
+			boolean global = true;
+			code.print("store i32");
+
+			//debug.println("LHS = " + LHS);
+			//debug.println("RHS = " + RHS);
+			
+			//debug.println(assn.getParent().getParent().getChildren());
+
+			DepthFirstIterator children = new DepthFirstIterator(assn.getParent().getParent());
+			children = new DepthFirstIterator(children.next());	
+			
+			String assigned = RHS.toString().substring(RHS.toString().indexOf("&")+2,RHS.toString().length() - 1);
+			//debug.println(assigned);
+			
+			while (children.hasNext())
+			{
+				Object child = children.next();
+
+				if(child instanceof VariableDeclaration)    //global variable declarations
+				{
+					for(int k = 0; k < ((VariableDeclaration) child).getNumDeclarators(); k++)
+					{
+						VariableDeclarator referencedDec = (VariableDeclarator) ((VariableDeclaration) child).getDeclarator(k);
+
+						if (referencedDec.getID().toString().equals(assigned))
+						{
+							global = false;
+							
+							int derefCount = referencedDec.getTypeSpecifiers().size();
+							
+							for (int j = 0; j < derefCount; j++) {
+								code.print("*");
+							}
+							
+							code.print(" %"+ referencedDec.getID() + ", i32");
+							
+							for (int j = 0; j <= derefCount; j++) {
+								code.print("*");
+							}
+							
+							code.println(" %"+ LHS);
+						}
+					}
+				}
+			}
+			if (global == true)
+			{
+				FlatIterator globalChildren = new FlatIterator(program);
+				globalChildren = new FlatIterator(globalChildren.next());	
+				
+				assigned = RHS.toString().substring(RHS.toString().indexOf("&")+2,RHS.toString().length() - 1);
+								
+				while (globalChildren.hasNext())
+				{
+					Object child = globalChildren.next();
+
+					if(child instanceof VariableDeclaration)    //global variable declarations
+					{						
+						for(int k = 0; k < ((VariableDeclaration) child).getNumDeclarators(); k++)
+						{
+							VariableDeclarator referencedDec = (VariableDeclarator) ((VariableDeclaration) child).getDeclarator(k);
+
+							if (referencedDec.getID().toString().equals(assigned))
+							{								
+								int derefCount = referencedDec.getTypeSpecifiers().size();
+								
+								for (int j = 0; j < derefCount; j++) {
+									code.print("*");
+								}
+								
+								code.print(" %"+ referencedDec.getID() + ", i32");
+								
+								for (int j = 0; j <= derefCount; j++) {
+									code.print("*");
+								}
+								
+								code.println(" %"+ LHS);
+							}
+						}
+					}
+				}
+			}
 		}
 
 		return returnReg;
