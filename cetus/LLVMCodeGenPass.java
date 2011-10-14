@@ -967,6 +967,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			ArrayAccess aL = (ArrayAccess) LHS;
 			nameLHS = aL.getArrayName().toString();
 			LHSArrayLocation=aL.getIndices().get(0).toString();
+			String LHSArrayLocation1;
+			try{
+				int LHSint = Integer.parseInt(LHSArrayLocation);
+				dump.println("try block for array ");
+				LHSArrayLocation1 = LHSArrayLocation;
+			}
+			catch(Exception e){
+				LHSArrayLocation1 = new String("%"+LHSArrayLocation);
+			}
 			if(aL.getNumIndices() > 1) {
 				LHSIs2dArray = true;
 				LHSArrayLocation2=aL.getIndices().get(1).toString();
@@ -974,12 +983,15 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			if(!LHSIs2dArray){				// if left hand side is not a 2d array
 				 String nameOfArray = nameLHS;
 				nameLHS = new String(nameLHS+"_"+LHSArrayLocation);
-				code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameLHS)+"* %"+nameOfArray+", i32 "+LHSArrayLocation);
+				if(LHSArrayLocation.equals(LHSArrayLocation1))
+					code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32 "+LHSArrayLocation1);
+				else
+					code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32* "+LHSArrayLocation1);
 			}
 			else if (LHSIs2dArray){			// otherwise if left hand side is 2d array
 				String nameOfArray = nameLHS;
 				nameLHS = new String(nameOfArray+"_"+LHSArrayLocation+"_"+LHSArrayLocation2);
-				code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameLHS)+"** %"+nameOfArray+", i32 "+LHSArrayLocation+", i32 "+LHSArrayLocation2);
+				code.println("%"+nameLHS+" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"** %"+nameOfArray+", i32 "+LHSArrayLocation+", i32 "+LHSArrayLocation2);
 			}
 			
 		}
@@ -1325,17 +1337,24 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 
 		StringBuffer instrBuff = new StringBuffer("");	//buffer for output to be written upon completion
 		StringBuffer setupInstr = new StringBuffer(""); //buffer for extra load instructions
-		instrBuff = instrBuff.append("%r" + resultReg + " = ");	//print start of instruction
-
-		//decide on function to be used
-		if(exp.getOperator().toString().trim().equals("+")) 
-			instrBuff = instrBuff.append("add i32 ");
-		else if(exp.getOperator().toString().trim().equals("-"))
-			instrBuff = instrBuff.append("sub i32 ");
-		else if(exp.getOperator().toString().trim().equals("*"))
-			instrBuff = instrBuff.append("mul i32 ");
-		else if(exp.getOperator().toString().trim().equals("/"))
-			instrBuff = instrBuff.append("sdiv i32 ");
+		
+		if (! (ListOfPointers.containsKey(LHS.toString())))
+		{
+			instrBuff = instrBuff.append("%r" + resultReg + " = ");	//print start of instruction
+			//decide on function to be used
+			if(exp.getOperator().toString().trim().equals("+")) 
+				instrBuff = instrBuff.append("add i32 ");
+			else if(exp.getOperator().toString().trim().equals("-"))
+				instrBuff = instrBuff.append("sub i32 ");
+			else if(exp.getOperator().toString().trim().equals("*"))
+				instrBuff = instrBuff.append("mul i32 ");
+			else if(exp.getOperator().toString().trim().equals("/"))
+				instrBuff = instrBuff.append("sdiv i32 ");
+		}
+		else
+		{
+			instrBuff = instrBuff.append("%r" + resultReg + " = getelementptr inbounds i32* ");
+		}
 
 		//generate code and result registers for left hand size
 		if(LHS instanceof IntegerLiteral)
@@ -1349,19 +1368,24 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			
 			if (ListOfPointers.containsKey(LHS.toString()))
 			{
-				for (int i = 0; i < Integer.parseInt(ListOfPointers.get(LHS.toString()).toString()); i++) { 	// count number of references
+				for (int i = 1; i < Integer.parseInt(ListOfPointers.get(LHS.toString()).toString()); i++) { 	// count number of references
 					setupInstr.append("*");
 				}	
 			}
 			
-			setupInstr = setupInstr.append(" %" +
+			setupInstr = setupInstr.append("* %" +
 					((Identifier)LHS).getName() + "\n");
 			instrBuff = instrBuff.append("%r" + (ssaReg-1));
 		}
 
 		//generate code and result registers for right hand size
 		if(RHS instanceof IntegerLiteral)
-			instrBuff = instrBuff.append(", " + ((IntegerLiteral)RHS).getValue());
+		{
+			if (! (ListOfPointers.containsKey(LHS.toString())))
+				instrBuff = instrBuff.append(", " + ((IntegerLiteral)RHS).getValue());
+			else
+				instrBuff = instrBuff.append(", i32 " + ((IntegerLiteral)RHS).getValue());
+		}
 		else if(RHS instanceof BinaryExpression)
 			instrBuff = instrBuff.append(", %r" + genExpressionCode((BinaryExpression)RHS));
 		else if(RHS instanceof Identifier)
