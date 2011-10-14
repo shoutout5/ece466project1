@@ -539,7 +539,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				else
 					code.println("%r" + RHSreg);
 			}
-			code.println("br i1 %"+(ssaReg-1)+", label %ifLabel"+ ifLabel++ +", label %ifLabel"+ ifLabel++);
+			code.println("br i1 %r"+(ssaReg-1)+", label %ifLabel"+ ifLabel++ +", label %ifLabel"+ ifLabel++);
 			code.println("ifLabel"+(ifLabel-2)+":");		//label for true condition
 
 			//gen code for true condition
@@ -593,6 +593,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			BinaryExpression exp = (BinaryExpression) lc;
 
 			//generate top of loop label
+			code.println("br label %loop" + loopLabel);
 			code.println("loop"+loopLabel++ +":");
 
 			int LHSreg = 0;
@@ -642,7 +643,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				code.println("%r" + RHSreg);
 
 			//generate branch statement
-			code.println("br i1 %"+(ssaReg-1)+", label %loop"+ loopLabel++ +", label %loop"+ loopLabel++);
+			code.println("br i1 %r"+(ssaReg-1)+", label %loop"+ loopLabel++ +", label %loop"+ loopLabel++);
 			//generate true label
 			code.println("loop"+(loopLabel-2)+":");
 			//generate loop body
@@ -685,6 +686,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			BinaryExpression exp = (BinaryExpression) lc;
 
 			//generate top of loop label
+			code.println("br label %loop" + loopLabel);
 			code.println("loop"+loopLabel++ +":");
 
 			int LHSreg = 0;
@@ -784,7 +786,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				code.println("%r" + RHSreg);
 
 			//generate branch statement
-			code.println("br i1 %"+(ssaReg-1)+", label %loop"+ loopLabel++ +", label %loop"+ loopLabel++);
+			code.println("br i1 %r"+(ssaReg-1)+", label %loop"+ loopLabel++ +", label %loop"+ loopLabel++);
 			//generate true label
 			code.println("loop"+(loopLabel-2)+":");
 			//generate loop body
@@ -1130,7 +1132,6 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		}
 		else if(RHS instanceof UnaryExpression){
 			boolean global = true;
-			code.print("store i32");
 
 			//debug.println("LHS = " + LHS);
 			//debug.println("RHS = " + RHS);
@@ -1423,7 +1424,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		fmtString = fmtString.concat("\\00");
 		
 		//print first part of call to scanf()
-		code.print("%"+ ssaReg++ + " = call i32 (i8*, ...)* @scanf(i8* getelementptr inbounds ([" +
+		code.print("%r"+ ssaReg++ + " = call i32 (i8*, ...)* @scanf(i8* getelementptr inbounds ([" +
 				(numChars+1) + " x i8]* @.str" + strNum + ", i32 0, i32 0)");
 		
 		//add args to scanf() call
