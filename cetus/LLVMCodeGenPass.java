@@ -84,18 +84,11 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 
 		if(verbosity>0)
 		{	
-			DepthFirstIterator dfs_iter = new DepthFirstIterator(program);
-			while (dfs_iter.hasNext()) {
-
-				Object o = dfs_iter.next();
-				if (o instanceof Declaration) {
-					Declaration D = (Declaration) o;
-					//D.print(w);
-				} 
-			}
-			// dump whatever you want
+			System.out.println("Dump Ouput:");
+			dump.flush();
+			System.out.println("\n\nDebug Output:\n");
+			debug.flush();
 		}
-		//w.flush();
 
 		//add definitions for printf() and scanf()
 		code.println("\n\n");
@@ -103,12 +96,9 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		code.println("declare i32 @printf(i8*, ...)");
 
 		//print all dump and code to screen at end
-		System.out.println("Dump Ouput:");
-		dump.flush();
-		System.out.println("Code Output:\n");
+		
 		code.flush();
-		System.out.println("\n\nDebug Output:\n");
-		debug.flush();
+		
 	} 
 
 	private void declareVariable(VariableDeclaration varDec)	// handling of local variables
@@ -975,7 +965,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 						code.print("*");
 					}
 					
-					code.println(" %" + nameRHS);
+					code.println(" %" + nameLHS);
 				}
 			} 
 			else {
