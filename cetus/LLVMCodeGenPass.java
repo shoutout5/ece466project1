@@ -228,6 +228,8 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			String arraySpec=null;
 			Declarator dec = varDec.getDeclarator(i);
 			IDExpression id = dec.getID();
+			if(id.getName().toString().equals("printf") || id.getName().toString().equals("scanf"))
+				return;
 			dump.println("Var ID: " + id.getName());
 			//dump.println("Specifiers = " + dec.getSpecifiers());
 			//dump.println("Type Specifiers = " + dec.getTypeSpecifiers());
@@ -266,8 +268,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				init = null;
 			}
 			if (dec.getSpecifiers().equals("[]"))
-				dump.println("int type!");
-
+				dump.println("int type!");				
 			code.print("@"+id.getName());
 
 			if (init == null)
@@ -1059,7 +1060,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 				code.println("store i32 "+ ((IntegerLiteral)RHS).getValue() + ", i32* %"+nameLHS);
 			}
 			returnReg = ssaReg++;
-			code.println("%" + returnReg + " = " + ((IntegerLiteral)RHS).getValue());
+			code.println("%" + returnReg + " = add i32 0, " + ((IntegerLiteral)RHS).getValue());
 			code.println("store i32 "+ ((IntegerLiteral)RHS).getValue() + ", i32* %"+nameLHS);
 		}
 		else if(RHS instanceof CommaExpression){
