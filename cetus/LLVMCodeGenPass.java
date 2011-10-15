@@ -470,7 +470,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 					 String nameOfArray = nameLHS;
 					try{
 						int x = Integer.parseInt(LHSArrayLocation);
-						code.println("%r"+ssaReg++ +" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+",i32 0, i32 "+LHSArrayLocation);
+						code.println("%r"+ssaReg++ +" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32 0, i32 "+LHSArrayLocation);
 					}
 					catch(NumberFormatException e){
 						code.println("%r"+ssaReg++ +" = getelementptr inbounds "+ListOfArrays.get(nameOfArray)+"* %"+nameOfArray+", i32 0, i32* "+LHSArrayLocation);
@@ -918,7 +918,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		{
 			int resultReg = genExpressionCode((BinaryExpression)ex);	
 			code.println("store i32 %r"+resultReg+", i32* %retval"+(currentRetVal-1));
-			code.println("return_"+currentRetVal+":");
+			//code.println("return_"+currentRetVal+":");
 			code.println("%retval"+ currentRetVal++ +" = load i32* %retval"+(currentRetVal-2));
 			code.println("ret i32 %retval"+(currentRetVal-1));
 		}
@@ -927,7 +927,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			code.println("%r" + ssaReg++ + " = load i32* %"+((Identifier)ex).getName());
 		
 			code.println("store i32 %r"+(ssaReg-1)+", i32* %retval"+(currentRetVal-1));
-			code.println("return_"+currentRetVal+":");
+			//code.println("return_"+currentRetVal+":");
 			code.println("%retval"+ currentRetVal++ +" = load i32* %retval"+(currentRetVal-2));
 			code.println("ret i32 %retval"+(currentRetVal-1));
 		}
@@ -944,7 +944,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			debug.println("FunctionCall");
 			int resultReg = functionCall((FunctionCall)ex);
 			code.println("store i32 %r"+resultReg+", i32* %retval"+(currentRetVal-1));
-			code.println("return_"+currentRetVal+":");
+			//code.println("return_"+currentRetVal+":");
 			code.println("%retval"+ currentRetVal++ +" = load i32* %retval"+(currentRetVal-2));
 			code.println("ret i32 %retval"+(currentRetVal-1));
 		}
@@ -954,7 +954,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		/*
 		code.println("%r" + ssaReg++ +" = "+ex.toString());
 		code.println("store i32 %"+(ssaReg-1)+", i32* %retval"+(currentRetVal-1));
-		code.println("return_"+currentRetVal+":");
+		//code.println("return_"+currentRetVal+":");
 		code.println("%retval"+ currentRetVal++ +" = load i32* %retval"+(currentRetVal-2));
 		code.println("ret i32 %retval"+(currentRetVal-1));
 		*/
@@ -1108,7 +1108,7 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			}
 			else
 			{
-				code.println("right here");
+				//code.println("right here");
 				code.print("store i32");
 				if (ListOfPointers.containsKey(nameLHS.toString()))
 					for (int i = 1; i < Integer.parseInt(ListOfPointers.get(nameLHS).toString()); i++) { 	// count number of references
@@ -1119,7 +1119,10 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 					for (int i = 1; i < Integer.parseInt(ListOfPointers.get(nameLHS).toString()); i++) { 	// count number of references
 						code.print("*");
 					}
-				code.println(" %r" + (returnReg+1));
+				if (ListOfPointers.containsKey(nameLHS.toString()))
+						code.println(" %" + nameLHS.toString());
+						else
+							code.println(" %r" + (returnReg+1));
 			}			
 		}
 		else if(RHS instanceof Identifier)
@@ -1437,15 +1440,22 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 			//load from memory into a register
 			setupInstr = setupInstr.append("%r" + ssaReg++ + " = load i32");
 			
-			if (ListOfPointers.containsKey(LHS.toString()))
+			if(!parameters.containsKey(((Identifier)LHS).getName()))	//pointer variable
 			{
-				for (int i = 1; i < Integer.parseInt(ListOfPointers.get(LHS.toString()).toString()); i++) { 	// count number of references
-					setupInstr.append("*");
-				}	
+				if (ListOfPointers.containsKey(LHS.toString()))
+				{
+					for (int i = 1; i < Integer.parseInt(ListOfPointers.get(LHS.toString()).toString()); i++) { 	// count number of references
+						setupInstr.append("*");
+					}	
+				}
+				
+				setupInstr = setupInstr.append("* %" +
+						((Identifier)LHS).getName() + "\n");
 			}
-			
-			setupInstr = setupInstr.append("* %" +
-					((Identifier)LHS).getName() + "\n");
+			else		//argument variable
+			{
+				setupInstr.append("* %r"+Integer.parseInt(parameters.get(((Identifier)LHS).getName()).toString())+"\n");
+			}
 			instrBuff = instrBuff.append("%r" + (ssaReg-1));
 		}
 		else if(LHS instanceof FunctionCall)
@@ -1472,9 +1482,16 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		else if(RHS instanceof Identifier)
 		{
 			//load from memory into a register
-			
-			setupInstr = setupInstr.append("%r" + ssaReg++ + " = load i32* %" +
-					((Identifier)RHS).getName() + "\n");
+			if(!parameters.containsKey(((Identifier)RHS).getName()))	//pointer variable
+			{
+				setupInstr = setupInstr.append("%r" + ssaReg++ + " = load i32* %" +
+						((Identifier)RHS).getName() + "\n");
+			}
+			else		//argument variable
+			{
+				setupInstr = setupInstr.append("%r" + ssaReg++ + " = load i32* %r" +
+						Integer.parseInt(parameters.get(((Identifier)RHS).getName()).toString()) + "\n");
+			}
 			instrBuff = instrBuff.append(", %r" + (ssaReg-1));
 		}
 
@@ -1543,11 +1560,22 @@ public class LLVMCodeGenPass extends cetus.analysis.AnalysisPass
 		
 		//get function arguments and put in registers
 		if(fc.getNumArguments() != 0)
+		{
 			beginReg = ssaReg;
+			endReg = beginReg + fc.getNumArguments() - 1;
+			ssaReg += fc.getNumArguments();
+		}
 		for(int i=0;i<fc.getNumArguments();i++)
 		{
-			endReg = ssaReg;
-			code.println("%r" + ssaReg++ + " = load i32* %"+fc.getArgument(i));
+			int resultReg;
+			//endReg = ssaReg;
+			if(fc.getArgument(i) instanceof BinaryExpression)
+			{
+				resultReg = genExpressionCode((BinaryExpression)(fc.getArgument(i)));
+				code.println("%r" + (beginReg+i) + " = add i32 0, %r" + resultReg);
+			}
+			else
+				code.println("%r" + (beginReg+i) + " = load i32* %"+fc.getArgument(i));
 		}
 		
 		//print call code
